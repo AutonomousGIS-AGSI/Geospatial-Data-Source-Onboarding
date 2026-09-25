@@ -149,7 +149,7 @@ Verified completion by mechanism (without → with handbook):
 | REST | 44.4% | 100% |
 | OGC | 33.3% | 88.9% |
 | HTTPS file download | 0% | 77.8% |
-| ArcGIS FeatureServer | — | 66.7% |
+| ArcGIS FeatureServer | 44.4% | 66.7% |
 | STAC | 22.2% | 55.6% |
 
 Handbooks helped with every mechanism. The largest gain was for file
