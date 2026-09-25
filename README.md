@@ -31,6 +31,8 @@ being fixed at design time.
 The framework turns a minimal source descriptor into reusable operational
 knowledge through five layers.
 
+![Framework architecture for geospatial data source onboarding](docs/figures/framework_architecture.png)
+
 1. **Knowledge acquisition.** *Source resolution* confirms the provider,
    publishing organization, official website and documentation entry point from
    web evidence. *Documentation acquisition* gathers API references, developer
@@ -100,6 +102,8 @@ onboarding. It has three tabs:
   handbook, run a retrieval task, and inspect diagnostics and preview outputs.
 - **Session report:** runs, convergence and exports.
 
+![Handbook Studio showing a generated handbook for the Microsoft Planetary Computer STAC API](docs/figures/handbook_studio.jpg)
+
 Each session is saved as a JSON record containing:
 - handbook snapshots
 - code attempts
@@ -142,21 +146,73 @@ selection. Outcomes were scored as *verified complete*, *partial output* or
 | Without handbook | 28.9% | 22.2% | 48.9% |
 | With generated handbook | **77.8%** | 17.8% | **4.4%** |
 
-Verified completion by mechanism (without → with handbook):
-
-| Mechanism | Without handbook | With handbook |
-|---|---|---|
-| REST | 44.4% | 100% |
-| OGC | 33.3% | 88.9% |
-| HTTPS file download | 0% | 77.8% |
-| ArcGIS FeatureServer | 44.4% | 66.7% |
-| STAC | 22.2% | 55.6% |
+![Verified completion rates with and without generated handbooks across five data access mechanisms](docs/figures/completion_by_mechanism.png)
 
 Handbooks helped with every mechanism. The largest gain was for file
 repositories. There the difficulty is rarely forming a query; it is knowing the
 provider's directory structure and file-naming conventions. Standards such as
 STAC and OGC reduced but did not remove the need for source-specific knowledge,
 such as collection IDs, asset keys, URL signing and service versions.
+
+#### Selected handbook-guided retrievals
+
+Each panel shows a retrieved output previewed in Handbook Studio.
+
+<table>
+<tr>
+<td width="40%" valign="top">
+<img src="docs/figures/rest_nasa_firms_sydney.jpg" alt="NASA FIRMS active fire detections around Sydney">
+<br><sub><b>REST · NASA FIRMS.</b> The handbook captured the API key, product
+selection, area query and time limits. The agent returned 3,166 active-fire
+detections for Sydney, Australia.</sub>
+</td>
+<td width="60%" valign="top">
+<img src="docs/figures/stac_sentinel2_landsat.jpg" alt="Sentinel-2 and Landsat imagery retrieved from STAC catalogs">
+<br><sub><b>STAC.</b> (a) A 512 × 512 Sentinel-2 L2A subset over Salem, Oregon,
+from Element 84 Earth Search (0.36% cloud cover). (b) Sentinel-2 over the
+Everglades from Microsoft Planetary Computer, which required signing the asset
+URLs. (c) The least-cloudy Landsat 8/9 scene for South Lake Tahoe from USGS
+Landsat Collection 2.</sub>
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<img src="docs/figures/ogc_3dep_mount_rainier_contours.jpg" alt="Contours derived from USGS 3DEP elevation around Mount Rainier">
+<br><sub><b>OGC WCS · USGS 3DEP.</b> The handbook recorded the WCS 2.0.1 request,
+the coverage ID and the axis-subsetting conventions. The agent pulled 30 m
+elevation for 40 × 40 km around Mount Rainier and derived 772 contours.</sub>
+</td>
+<td width="50%" valign="top">
+<img src="docs/figures/ogc_fema_nfhl_cape_coral.jpg" alt="FEMA flood hazard zones for Cape Coral, Florida">
+<br><sub><b>OGC WFS · FEMA NFHL.</b> Self-verification corrected an unresponsive
+service URL. The agent then retrieved and clipped 3,456 flood-zone polygons for
+Cape Coral, Florida, on its first attempt.</sub>
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td width="45%" valign="top">
+<img src="docs/figures/http_hydrosheds_worldpop.jpg" alt="HydroSHEDS raster for Lagos and WorldPop raster for DR Congo">
+<br><sub><b>HTTPS file download.</b> (a) HydroSHEDS for Lagos: the file
+downloaded correctly, but it held flow direction instead of the requested flow
+accumulation. This is a partial result, because the handbook was tied to one
+product. (b) A 2025 WorldPop 1 km raster of the population under 18, found from
+the release's directory and file-naming conventions.</sub>
+</td>
+<td width="55%" valign="top">
+<img src="docs/figures/arcgis_padus_quaternary_faults.jpg" alt="PAD-US protected areas in Boulder and Quaternary faults in the Bay Area">
+<br><sub><b>ArcGIS FeatureServer.</b> (a) 326 PAD-US protected-area polygons in
+Boulder, Colorado, in three requests. Without the handbook, the agent never
+found the hosted layer. (b) 6,153 USGS Quaternary fault features for the San
+Francisco Bay Area.</sub>
+</td>
+</tr>
+</table>
 
 ### 2. LLM-Find benchmark
 
