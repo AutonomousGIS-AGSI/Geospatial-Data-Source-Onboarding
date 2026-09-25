@@ -26,6 +26,8 @@ things:
 The agent's retrieval capability can therefore grow during operation instead of
 being fixed at design time.
 
+**Try it online:** [Handbook Studio](https://www.gis-coscientist.online/handbook-studio)
+
 ## Framework
 
 The framework turns a minimal source descriptor into reusable operational
@@ -96,7 +98,8 @@ the retrieval agent the source identity, operational instructions and an
 executable example. The rest support user guidance and credential collection.
 
 **Handbook Studio.** Handbook Studio is the web interface for running
-onboarding. It has three tabs:
+onboarding. A hosted version is available at
+<https://www.gis-coscientist.online/handbook-studio>. It has three tabs:
 - **Setup:** choose the source, the LLMs and the execution limits.
 - **Generate & retrieve:** watch generation stage by stage, review and edit the
   handbook, run a retrieval task, and inspect diagnostics and preview outputs.
