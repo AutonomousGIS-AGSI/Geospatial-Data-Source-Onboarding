@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGM Map Viewer</title>
+
+    <!-- OpenLayers CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.1.0/ol.css">
+    <!-- Mapbox GL CSS -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .map-controls button {
+            display: block;
+            width: 40px;
+            height: 40px;
+            margin: 5px 0;
+            padding: 0;
+            border: none;
+            background: #2c5f7c;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .map-controls button:hover {
+            background: #1a3a4d;
+            transform: scale(1.05);
+        }
+
+        /* Tooltip styling */
+        .map-controls button[title] {
+            position: relative;
+        }
+
+        .map-controls button[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            left: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            white-space: nowrap;
+            font-size: 0.85em;
+            z-index: 1001;
+            pointer-events: none;
+            animation: tooltipFadeIn 0.2s ease;
+        }
+
+        .map-controls button[title]:hover::before {
+            content: '';
+            position: absolute;
+            left: 43px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 5px solid transparent;
+            border-right-color: rgba(0, 0, 0, 0.85);
+            z-index: 1001;
+            pointer-events: none;
+        }
+
+        @keyframes tooltipFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50%) translateX(-5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(-50%) translateX(0);
+            }
+        }
+
+        /* Basemap picker control */
+        .basemap-picker {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .basemap-picker-btn {
+            width: 38px;
+            height: 38px;
+            background: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2c5f7c;
+            transition: background 0.15s;
+        }
+        .basemap-picker-btn:hover { background: #f0f0f0; }
+        .basemap-picker-menu {
+            position: absolute;
+            top: 44px;
+            left: 0;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: none;
+            min-width: 140px;
+            overflow: hidden;
+        }
+        .basemap-picker.open .basemap-picker-menu { display: block; }
+        .basemap-option {
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #333;
+            user-select: none;
+        }
+        .basemap-option:hover { background: #f0f0f0; }
+        .basemap-option.active {
+            background: #e8f0f5;
+            font-weight: 600;
+            color: #2c5f7c;
+        }
+
+        /* Mapbox-style legend control */
+        .layer-info {
+            position: absolute;
+            bottom: 30px;
+            left: 10px;
+            z-index: 1000;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            max-width: 220px;
+            overflow: hidden;
+        }
+
+        .legend-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background: #f8f8f8;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .legend-header h3 {
+            margin: 0;
+            font-size: 11px;
+            font-weight: 600;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-toggle {
+            font-size: 10px;
+            color: #999;
+            transition: transform 0.2s;
+        }
+
+        .legend-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .legend-body {
+            padding: 6px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            transition: max-height 0.25s ease, padding 0.25s ease;
+        }
+
+        .legend-body.collapsed {
+            max-height: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 10px;
+        }
+
+        .layer-item:hover {
+            background: #f0f0f0;
+        }
+
+        .layer-width-slider {
+            margin-left: auto;
+            width: 60px;
+            height: 14px;
+            cursor: pointer;
+            accent-color: #2c5f7c;
+            flex-shrink: 0;
+        }
+
+        /* The colour input is laid invisibly over the legend swatch, so the
+           symbol itself is what you click to recolour the layer. */
+        .legend-swatch--editable { position: relative; cursor: pointer; overflow: visible; }
+        .legend-swatch--editable:hover { outline: 2px solid rgba(44, 95, 124, 0.35); outline-offset: 2px; }
+        .layer-color-picker {
+            position: absolute;
+            inset: -4px;
+            width: calc(100% + 8px);
+            height: calc(100% + 8px);
+            margin: 0;
+            padding: 0;
+            border: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .layer-table-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #999;
+            font-size: 12px;
+            line-height: 1;
+            padding: 0 2px;
+            flex-shrink: 0;
+            transition: color 0.15s;
+        }
+
+        .layer-table-btn:hover {
+            color: #2c5f7c;
+        }
+
+        .layer-remove-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #999;
+            font-size: 13px;
+            font-weight: bold;
+            line-height: 1;
+            padding: 0 2px;
+            flex-shrink: 0;
+            transition: color 0.15s;
+        }
+
+        .layer-remove-btn:hover {
+            color: #d9534f;
+        }
+
+        .legend-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .legend-swatch--fill {
+            background: rgba(44, 95, 124, 0.35);
+            border: 1.5px solid #2c5f7c;
+        }
+
+        .legend-swatch--line {
+            background: none;
+            border: none;
+            height: 3px;
+            border-radius: 2px;
+            background: #2c5f7c;
+        }
+
+        .legend-swatch--point {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2c5f7c;
+        }
+
+        .layer-item span.legend-label {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 11px;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ol-popup {
+            position: absolute;
+            background-color: white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #cccccc;
+            bottom: 12px;
+            left: -50px;
+            min-width: 280px;
+            max-width: 400px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .ol-popup:after, .ol-popup:before {
+            top: 100%;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .ol-popup:after {
+            border-top-color: white;
+            border-width: 10px;
+            left: 48px;
+            margin-left: -10px;
+        }
+
+        .ol-popup:before {
+            border-top-color: #cccccc;
+            border-width: 11px;
+            left: 48px;
+            margin-left: -11px;
+        }
+
+        .ol-popup-closer {
+            text-decoration: none;
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            color: #666;
+            font-size: 20px;
+        }
+
+        .ol-popup-closer:after {
+            content: "\2716";
+        }
+
+        .ol-popup h4 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            color: #2c5f7c;
+        }
+
+        /* Mapbox popup styling to match OpenLayers popup look */
+        .mapboxgl-popup-content {
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 280px;
+            max-width: 400px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .mapboxgl-popup-content h4 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            color: #2c5f7c;
+        }
+    </style>
+</head>
+<body>
+    <!-- Commented out: Map control buttons hidden
+    <div class="map-controls">
+        <button onclick="resetView()" title="Reset View">&#127968;</button>
+        <button onclick="toggleFullscreen()" title="Fullscreen">&#9974;</button>
+        <button onclick="exportMap()" title="Export">&#128190;</button>
+    </div>
+    -->
+
+    <!-- Basemap picker -->
+    <div class="basemap-picker" id="basemap-picker">
+        <button class="basemap-picker-btn" id="basemap-picker-btn" title="Change basemap" aria-label="Change basemap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+        </button>
+        <div class="basemap-picker-menu" id="basemap-picker-menu"></div>
+    </div>
+
+    <!-- Legend Panel (Mapbox control style) -->
+    <div class="layer-info" id="layer-info">
+        <div class="legend-header" onclick="toggleLegend()">
+            <h3>Layers</h3>
+            <span class="legend-toggle" id="legend-toggle-icon">&#9660;</span>
+        </div>
+        <div class="legend-body" id="legend-body">
+            <p style="color: #999; font-size: 11px; padding: 6px 10px; margin: 0;">No layers loaded</p>
+        </div>
+    </div>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Popup container (used by OpenLayers only) -->
+    <div id="popup" class="ol-popup">
+        <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+        <div id="popup-content"></div>
+    </div>
+
+    <!-- OpenLayers JS -->
+    <script src="https://cdn.jsdelivr.net/npm/ol@v9.1.0/dist/ol.js"></script>
+    <!-- Mapbox GL JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+
+    <!-- Shapefile support -->
+    <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+
+    <!-- GeoPackage support -->
+    <script src="https://cdn.jsdelivr.net/npm/@ngageoint/geopackage@4.2.6/dist/geopackage.min.js"></script>
+
+    <!-- GeoTIFF support -->
+    <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+
+    <script>
+        // ================================================================
+        //  CONFIGURATION — map provider
+        //    'openlayers'  –  OpenLayers + OSM tiles
+        //    'mapbox'      –  Mapbox GL JS (requires MAPBOX_TOKEN)
+        //  The server fills in MAPBOX_TOKEN from the MAPBOX_TOKEN environment
+        //  variable when it serves this page; without one, OpenLayers is used.
+        // ================================================================
+        const MAPBOX_TOKEN = '__MAPBOX_TOKEN__';
+        const MAP_ENGINE = MAPBOX_TOKEN.startsWith('pk.') ? 'mapbox' : 'openlayers';
+        const MAPBOX_STYLE = 'mapbox://styles/mapbox/streets-v12';
+        // Other styles: 'light-v11', 'dark-v11', 'satellite-v9',
+        //               'satellite-streets-v12', 'outdoors-v12'
+
+        // ================================================================
+        //  SHARED STATE
+        // ================================================================
+        let map;
+        let loadedLayers = {};
+
+        // Engine-specific functions (assigned in the engine blocks below)
+        let loadGeoJSON, addMarker, toggleLayer, removeLayerById, clearAllMapLayers, resetView;
+        // Per-layer symbol colour (points, lines, polygon outlines; the fill
+        // is the same colour at 30% opacity). Both engines assign it.
+        let setLayerColor;
+        const DEFAULT_LAYER_COLOR = '#2c5f7c';
+        function colorWithAlpha(hex, alpha) {
+            const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+            if (!m) return hex;
+            const n = parseInt(m[1], 16);
+            return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+        }
+        // Assigned by the mapbox engine only; the call site falls back to
+        // drawing the footprint when the active engine does not provide it.
+        let loadImageOverlay;
+
+        // Detect the dominant geometry type from a GeoJSON object
+        function detectGeometryType(geoJSON) {
+            const features = geoJSON.type === 'FeatureCollection' ? geoJSON.features
+                           : geoJSON.type === 'Feature' ? [geoJSON] : [];
+            for (let i = 0; i < features.length; i++) {
+                const geom = features[i] && features[i].geometry;
+                if (!geom) continue;
+                const t = geom.type;
+                if (t === 'Point' || t === 'MultiPoint') return 'point';
+                if (t === 'LineString' || t === 'MultiLineString') return 'line';
+                if (t === 'Polygon' || t === 'MultiPolygon') return 'polygon';
+            }
+            return 'polygon'; // fallback
+        }
+
+        // ================================================================
+        //  GeoPackage WASM loader (shared)
+        // ================================================================
+        if (window.GeoPackage && window.GeoPackage.setSqljsWasmLocateFile) {
+            window.GeoPackage.setSqljsWasmLocateFile(
+                file => 'https://cdn.jsdelivr.net/npm/@ngageoint/geopackage@4.2.6/dist/' + file
+            );
+        }
+
+        // ================================================================
+        //  OPENLAYERS ENGINE
+        // ================================================================
+        if (MAP_ENGINE === 'openlayers') {
+
+            // Hide Mapbox attribution if present
+            document.querySelectorAll('.mapboxgl-ctrl').forEach(el => el.style.display = 'none');
+
+            // Popup overlay
+            const olContainer = document.getElementById('popup');
+            const olContent   = document.getElementById('popup-content');
+            const olCloser    = document.getElementById('popup-closer');
+
+            const overlay = new ol.Overlay({
+                element: olContainer,
+                autoPan: { animation: { duration: 250 } }
+            });
+
+            olCloser.onclick = function () {
+                overlay.setPosition(undefined);
+                olCloser.blur();
+                return false;
+            };
+
+            // Create the map
+            map = new ol.Map({
+                target: 'map',
+                layers: [
+                    new ol.layer.Tile({
+                        source: new ol.source.OSM()
+                    })
+                ],
+                overlays: [overlay],
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([-98.5795, 39.8283]),
+                    zoom: 4
+                })
+            });
+
+            // Click → popup
+            map.on('singleclick', function (evt) {
+                const feature = map.forEachFeatureAtPixel(evt.pixel, function (f) { return f; });
+                if (feature) {
+                    const properties = feature.getProperties();
+                    let layerName = 'Feature';
+                    for (const layerId in loadedLayers) {
+                        const layerObj = loadedLayers[layerId];
+                        if (layerObj.layer) {
+                            const source = layerObj.layer.getSource();
+                            if (source && source.getFeatures && source.getFeatures().includes(feature)) {
+                                layerName = layerObj.name;
+                                break;
+                            }
+                        }
+                    }
+                    let html = '<h4>' + layerName + '</h4>';
+                    for (let key in properties) {
+                        if (key !== 'geometry') html += '<b>' + key + ':</b> ' + properties[key] + '<br>';
+                    }
+                    olContent.innerHTML = html;
+                    overlay.setPosition(evt.coordinate);
+                } else {
+                    overlay.setPosition(undefined);
+                }
+            });
+
+            // Cursor change
+            map.on('pointermove', function (e) {
+                const hit = map.hasFeatureAtPixel(map.getEventPixel(e.originalEvent));
+                map.getTarget().style.cursor = hit ? 'pointer' : '';
+            });
+
+            // --- Engine functions ---
+
+            // Build a style for a vector layer given a stroke width
+            function buildVectorStyle(width, color) {
+                color = color || DEFAULT_LAYER_COLOR;
+                return new ol.style.Style({
+                    stroke: new ol.style.Stroke({ color: color, width: width }),
+                    fill:   new ol.style.Fill({ color: colorWithAlpha(color, 0.3) }),
+                    image:  new ol.style.Circle({
+                        radius: Math.max(0.5, width * 2),
+                        fill: new ol.style.Fill({ color: color }),
+                        stroke: new ol.style.Stroke({ color: color, width: width })
+                    })
+                });
+            }
+
+            // Change the stroke width of an already-loaded vector layer
+            setLayerStrokeWidth = function (layerId, width) {
+                const entry = loadedLayers[layerId];
+                if (!entry || !entry.layer || typeof entry.layer.setStyle !== 'function') return;
+                entry.width = width;
+                entry.layer.setStyle(buildVectorStyle(width, entry.color));
+            };
+
+            setLayerColor = function (layerId, color) {
+                const entry = loadedLayers[layerId];
+                if (!entry || !entry.layer || typeof entry.layer.setStyle !== 'function') return;
+                entry.color = color;
+                entry.layer.setStyle(buildVectorStyle(entry.width != null ? entry.width : 2, color));
+            };
+
+            loadGeoJSON = function (geoJSON, layerId, layerName) {
+                const features = new ol.format.GeoJSON().readFeatures(geoJSON, {
+                    featureProjection: 'EPSG:3857'
+                });
+
+                const vectorSource = new ol.source.Vector({ features: features });
+
+                const defaultWidth = 2;
+                const vectorLayer = new ol.layer.Vector({
+                    source: vectorSource,
+                    style: buildVectorStyle(defaultWidth)
+                });
+
+                map.addLayer(vectorLayer);
+                loadedLayers[layerId] = { layer: vectorLayer, name: layerName, geomType: detectGeometryType(geoJSON), width: defaultWidth, color: DEFAULT_LAYER_COLOR, geoJSONData: geoJSON };
+
+                const extent = vectorSource.getExtent();
+                if (extent && extent.every(val => isFinite(val))) {
+                    map.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 16 });
+                }
+
+                console.log('GeoJSON loaded:', layerName);
+                updateLayerList();
+            };
+
+            addMarker = function (coordinates, layerId, layerName) {
+                const marker = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat(coordinates)),
+                    name: layerName
+                });
+
+                const markerSource = new ol.source.Vector({ features: [marker] });
+
+                const markerLayer = new ol.layer.Vector({
+                    source: markerSource,
+                    style: new ol.style.Style({
+                        image: new ol.style.Icon({
+                            anchor: [0.5, 1],
+                            src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path fill="%232c5f7c" d="M16 0C9.4 0 4 5.4 4 12c0 8 12 20 12 20s12-12 12-20c0-6.6-5.4-12-12-12zm0 16c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z"/></svg>'
+                        })
+                    })
+                });
+
+                map.addLayer(markerLayer);
+                loadedLayers[layerId] = { layer: markerLayer, name: layerName };
+
+                map.getView().setCenter(ol.proj.fromLonLat(coordinates));
+                map.getView().setZoom(12);
+
+                updateLayerList();
+            };
+
+            toggleLayer = function (layerId, visible) {
+                const layerObj = loadedLayers[layerId];
+                if (layerObj && layerObj.layer) {
+                    layerObj.layer.setVisible(visible);
+                }
+            };
+
+            removeLayerById = function (layerId) {
+                const layerObj = loadedLayers[layerId];
+                if (layerObj && layerObj.layer) {
+                    map.removeLayer(layerObj.layer);
+                }
+                delete loadedLayers[layerId];
+            };
+
+            clearAllMapLayers = function () {
+                Object.keys(loadedLayers).forEach(id => {
+                    const layerObj = loadedLayers[id];
+                    if (layerObj && layerObj.layer) map.removeLayer(layerObj.layer);
+                });
+                loadedLayers = {};
+            };
+
+            resetView = function () {
+                map.getView().setCenter(ol.proj.fromLonLat([-98.5795, 39.8283]));
+                map.getView().setZoom(4);
+            };
+
+            console.log('OpenLayers engine initialised');
+        }
+
+        // ================================================================
+        //  MAPBOX GL JS ENGINE
+        // ================================================================
+        else if (MAP_ENGINE === 'mapbox') {
+
+            // Hide the OpenLayers popup container (Mapbox uses its own popups)
+            document.getElementById('popup').style.display = 'none';
+
+            mapboxgl.accessToken = MAPBOX_TOKEN;
+
+            let mapReady = false;
+            let pendingOps = [];
+            let allMapboxLayerIds = [];   // for queryRenderedFeatures
+
+            map = new mapboxgl.Map({
+                container: 'map',
+                style: MAPBOX_STYLE,
+                center: [-98.5795, 39.8283],
+                zoom: 4
+            });
+
+            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+            // Helper: run fn now if style is loaded, otherwise queue it.
+            //
+            // The 'load' event is the normal signal, but it can be missed --
+            // notably when the map is constructed before its container has a
+            // laid-out size, which happens when the viewer is embedded in a
+            // tab that is not visible yet. A layer queued in that state would
+            // otherwise sit in pendingOps forever with no error anywhere, so
+            // poll isStyleLoaded() as a backstop and flush once it is safe to
+            // call addSource/addLayer.
+            function whenMapReady(fn) {
+                if (mapReady) { fn(); return; }
+                pendingOps.push(fn);
+                startReadyFallback();
+            }
+
+            let readyFallbackTimer = null;
+            function flushPendingOps() {
+                mapReady = true;
+                const ops = pendingOps;
+                pendingOps = [];
+                ops.forEach(op => {
+                    try { op(); } catch (err) { console.error('Queued map op failed:', err); }
+                });
+            }
+            function startReadyFallback() {
+                if (readyFallbackTimer || mapReady) return;
+                readyFallbackTimer = setInterval(() => {
+                    if (mapReady) {
+                        clearInterval(readyFallbackTimer);
+                        readyFallbackTimer = null;
+                        return;
+                    }
+                    // resize() re-reads the container box; if the map was built
+                    // hidden this is what lets the style finish.
+                    try { map.resize(); } catch (err) { /* not fatal */ }
+                    if (map.isStyleLoaded()) {
+                        clearInterval(readyFallbackTimer);
+                        readyFallbackTimer = null;
+                        console.log('Map became ready via fallback poll; flushing '
+                            + pendingOps.length + ' queued layer op(s).');
+                        flushPendingOps();
+                    }
+                }, 400);
+            }
+
+            map.on('load', () => {
+                flushPendingOps();
+            });
+
+            // Compute bounds from raw GeoJSON
+            function computeBounds(geoJSON) {
+                let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+                function walk(coords) {
+                    if (typeof coords[0] === 'number' && coords.length >= 2) {
+                        if (coords[0] < minLng) minLng = coords[0];
+                        if (coords[0] > maxLng) maxLng = coords[0];
+                        if (coords[1] < minLat) minLat = coords[1];
+                        if (coords[1] > maxLat) maxLat = coords[1];
+                    } else {
+                        coords.forEach(walk);
+                    }
+                }
+                const features = geoJSON.type === 'FeatureCollection' ? geoJSON.features
+                               : geoJSON.type === 'Feature' ? [geoJSON] : [];
+                features.forEach(f => {
+                    if (f.geometry && f.geometry.coordinates) walk(f.geometry.coordinates);
+                });
+                if (minLng !== Infinity) return [[minLng, minLat], [maxLng, maxLat]];
+                return null;
+            }
+
+            // Look up friendly layer name from a Mapbox sub-layer ID
+            function layerNameFromMbId(mbId) {
+                for (const id in loadedLayers) {
+                    if (loadedLayers[id].layerIds && loadedLayers[id].layerIds.includes(mbId)) {
+                        return loadedLayers[id].name;
+                    }
+                }
+                return mbId;
+            }
+
+            // Click → popup
+            map.on('click', (e) => {
+                const active = allMapboxLayerIds.filter(id => map.getLayer(id));
+                if (active.length === 0) return;
+
+                const features = map.queryRenderedFeatures(e.point, { layers: active });
+                if (features.length === 0) return;
+
+                const feat = features[0];
+                const lName = layerNameFromMbId(feat.layer.id);
+                let html = '<h4>' + lName + '</h4>';
+                for (let key in feat.properties) {
+                    html += '<b>' + key + ':</b> ' + feat.properties[key] + '<br>';
+                }
+
+                new mapboxgl.Popup({ maxWidth: '400px' })
+                    .setLngLat(e.lngLat)
+                    .setHTML(html)
+                    .addTo(map);
+            });
+
+            // Cursor change
+            map.on('mousemove', (e) => {
+                const active = allMapboxLayerIds.filter(id => map.getLayer(id));
+                if (active.length === 0) { map.getCanvas().style.cursor = ''; return; }
+                const features = map.queryRenderedFeatures(e.point, { layers: active });
+                map.getCanvas().style.cursor = features.length > 0 ? 'pointer' : '';
+            });
+
+            // --- Engine functions ---
+
+            // A raster the server already rendered and reprojected to
+            // EPSG:4326, supplied as four lon/lat corners. Separate from the
+            // GeoTIFF branch below, which decodes in the browser and rejects
+            // anything not already in WGS84 -- which is most satellite
+            // imagery, since it ships in UTM.
+            loadImageOverlay = function (url, coordinates, layerId, layerName) {
+                whenMapReady(() => {
+                    try {
+                        const sourceId = layerId + '_src';
+                        if (map.getLayer(layerId)) map.removeLayer(layerId);
+                        if (map.getSource(sourceId)) map.removeSource(sourceId);
+                        map.addSource(sourceId, { type: 'image', url, coordinates });
+                        map.addLayer({
+                            id: layerId, type: 'raster', source: sourceId,
+                            paint: { 'raster-opacity': 1 },
+                        });
+                        const lons = coordinates.map(c => c[0]);
+                        const lats = coordinates.map(c => c[1]);
+                        map.fitBounds(
+                            [[Math.min(...lons), Math.min(...lats)],
+                             [Math.max(...lons), Math.max(...lats)]],
+                            { padding: 40, animate: true });
+                        // Registered as type 'tif' so the basemap-switch
+                        // restore path, which re-adds image sources after a
+                        // style change, picks this up unchanged.
+                        loadedLayers[layerId] = {
+                            name: layerName, type: 'tif', sourceId,
+                            layerIds: [layerId], dataURL: url, coordinates,
+                            geomType: 'raster',
+                            rasterInfo: buildOverlayRasterInfo(layerName, coordinates),
+                        };
+                        console.log('Image overlay added:', layerName);
+                        updateLayerList();
+                    } catch (error) {
+                        console.error('Error adding image overlay:', error);
+                    }
+                });
+            };
+
+            loadGeoJSON = function (geoJSON, layerId, layerName) {
+                whenMapReady(() => {
+                    // Remove if source already exists (e.g. re-adding same layer)
+                    if (map.getSource(layerId)) {
+                        const existing = loadedLayers[layerId];
+                        if (existing && existing.layerIds) {
+                            existing.layerIds.forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
+                            allMapboxLayerIds = allMapboxLayerIds.filter(id => !existing.layerIds.includes(id));
+                        }
+                        map.removeSource(layerId);
+                    }
+
+                    map.addSource(layerId, { type: 'geojson', data: geoJSON });
+
+                    const defaultWidth = 2;
+                    const color = DEFAULT_LAYER_COLOR;
+                    const subLayers = [
+                        { id: layerId + '-fill',    type: 'fill',   paint: { 'fill-color': colorWithAlpha(color, 0.3) }, filter: ['==', '$type', 'Polygon'] },
+                        { id: layerId + '-outline',  type: 'line',   paint: { 'line-color': color, 'line-width': defaultWidth }, filter: ['==', '$type', 'Polygon'] },
+                        { id: layerId + '-line',     type: 'line',   paint: { 'line-color': color, 'line-width': defaultWidth }, filter: ['==', '$type', 'LineString'] },
+                        { id: layerId + '-circle',   type: 'circle', paint: { 'circle-radius': Math.max(0.5, defaultWidth * 2), 'circle-color': color }, filter: ['==', '$type', 'Point'] }
+                    ];
+
+                    const layerIds = [];
+                    subLayers.forEach(sl => {
+                        map.addLayer({ id: sl.id, type: sl.type, source: layerId, paint: sl.paint, filter: sl.filter });
+                        layerIds.push(sl.id);
+                        allMapboxLayerIds.push(sl.id);
+                    });
+
+                    loadedLayers[layerId] = { name: layerName, sourceId: layerId, layerIds: layerIds, geomType: detectGeometryType(geoJSON), width: defaultWidth, color: color, geoJSONData: geoJSON };
+
+                    // Fit bounds
+                    const bounds = computeBounds(geoJSON);
+                    if (bounds) {
+                        map.fitBounds(bounds, { padding: 50, maxZoom: 16 });
+                    }
+
+                    console.log('GeoJSON loaded (Mapbox):', layerName);
+                    updateLayerList();
+                });
+            };
+
+            addMarker = function (coordinates, layerId, layerName) {
+                const marker = new mapboxgl.Marker({ color: '#2c5f7c' })
+                    .setLngLat(coordinates)
+                    .addTo(map);
+
+                loadedLayers[layerId] = { name: layerName, marker: marker, layerIds: [] };
+
+                map.flyTo({ center: coordinates, zoom: 12 });
+                updateLayerList();
+            };
+
+            toggleLayer = function (layerId, visible) {
+                const obj = loadedLayers[layerId];
+                if (!obj) return;
+
+                if (obj.marker) {
+                    // Mapbox Marker visibility
+                    obj.marker.getElement().style.display = visible ? '' : 'none';
+                } else if (obj.layerIds) {
+                    const vis = visible ? 'visible' : 'none';
+                    obj.layerIds.forEach(id => {
+                        if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
+                    });
+                }
+            };
+
+            // Recolour a loaded Mapbox vector layer: points, lines and polygon
+            // outlines take the colour; the polygon fill is it at 30% opacity.
+            setLayerColor = function (layerId, color) {
+                const obj = loadedLayers[layerId];
+                if (!obj || !obj.layerIds) return;
+                obj.color = color;
+                obj.layerIds.forEach(id => {
+                    if (!map.getLayer(id)) return;
+                    if (id.endsWith('-fill')) map.setPaintProperty(id, 'fill-color', colorWithAlpha(color, 0.3));
+                    else if (id.endsWith('-outline') || id.endsWith('-line')) map.setPaintProperty(id, 'line-color', color);
+                    else if (id.endsWith('-circle')) map.setPaintProperty(id, 'circle-color', color);
+                });
+            };
+
+            // Change stroke width (and point radius) for a loaded Mapbox vector layer
+            setLayerStrokeWidth = function (layerId, width) {
+                const obj = loadedLayers[layerId];
+                if (!obj || !obj.layerIds) return;
+                obj.width = width;
+                obj.layerIds.forEach(id => {
+                    if (!map.getLayer(id)) return;
+                    if (id.endsWith('-outline') || id.endsWith('-line')) {
+                        map.setPaintProperty(id, 'line-width', width);
+                    } else if (id.endsWith('-circle')) {
+                        map.setPaintProperty(id, 'circle-radius', Math.max(0.5, width * 2));
+                    }
+                });
+            };
+
+            removeLayerById = function (layerId) {
+                const obj = loadedLayers[layerId];
+                if (!obj) return;
+
+                if (obj.marker) {
+                    obj.marker.remove();
+                } else {
+                    if (obj.layerIds) {
+                        obj.layerIds.forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
+                        allMapboxLayerIds = allMapboxLayerIds.filter(id => !obj.layerIds.includes(id));
+                    }
+                    if (obj.sourceId && map.getSource(obj.sourceId)) {
+                        map.removeSource(obj.sourceId);
+                    }
+                }
+                delete loadedLayers[layerId];
+            };
+
+            clearAllMapLayers = function () {
+                Object.keys(loadedLayers).forEach(id => removeLayerById(id));
+                loadedLayers = {};
+                allMapboxLayerIds = [];
+            };
+
+            resetView = function () {
+                map.flyTo({ center: [-98.5795, 39.8283], zoom: 4 });
+            };
+
+            // -------- Basemap switcher (Mapbox only) --------
+            setBasemap = function (styleUrl) {
+                // Snapshot restorable layers
+                const geojsonSnap = [];
+                const tifSnap = [];
+                const markerEntries = {};
+                Object.keys(loadedLayers).forEach(id => {
+                    const e = loadedLayers[id];
+                    if (e.geoJSONData) {
+                        geojsonSnap.push({ id, name: e.name, data: e.geoJSONData, width: e.width, color: e.color });
+                    } else if (e.type === 'tif') {
+                        tifSnap.push({ id, name: e.name, sourceId: e.sourceId, dataURL: e.dataURL, coordinates: e.coordinates, rasterInfo: e.rasterInfo });
+                    } else if (e.marker) {
+                        markerEntries[id] = e;
+                    }
+                });
+
+                loadedLayers = {};
+                allMapboxLayerIds = [];
+
+                map.once('style.load', () => {
+                    Object.assign(loadedLayers, markerEntries);
+                    tifSnap.forEach(s => {
+                        if (map.getLayer(s.id)) map.removeLayer(s.id);
+                        if (map.getSource(s.sourceId)) map.removeSource(s.sourceId);
+                        map.addSource(s.sourceId, { type: 'image', url: s.dataURL, coordinates: s.coordinates });
+                        map.addLayer({ id: s.id, type: 'raster', source: s.sourceId, paint: { 'raster-opacity': 0.85 } });
+                        loadedLayers[s.id] = { name: s.name, type: 'tif', sourceId: s.sourceId, layerIds: [s.id], dataURL: s.dataURL, coordinates: s.coordinates, geomType: 'raster', rasterInfo: s.rasterInfo };
+                    });
+                    geojsonSnap.forEach(s => {
+                        loadGeoJSON(s.data, s.id, s.name);
+                        const customWidth = s.width != null && s.width !== 2;
+                        const customColor = s.color && s.color !== DEFAULT_LAYER_COLOR;
+                        if (customWidth || customColor) {
+                            const check = setInterval(() => {
+                                if (loadedLayers[s.id] && loadedLayers[s.id].layerIds) {
+                                    if (customWidth) setLayerStrokeWidth(s.id, s.width);
+                                    if (customColor) setLayerColor(s.id, s.color);
+                                    clearInterval(check);
+                                }
+                            }, 50);
+                            setTimeout(() => clearInterval(check), 5000);
+                        }
+                    });
+                    updateLayerList();
+                });
+
+                map.setStyle(styleUrl);
+            };
+
+            console.log('Mapbox GL JS engine initialised');
+        }
+
+        // ================================================================
+        //  SHARED — layer routing (engine-agnostic)
+        // ================================================================
+
+        // Tracks layer names whose async load is in flight. Prevents
+        // simultaneous ADD_LAYER messages for the same source from racing
+        // past the dedup check before either has registered in loadedLayers.
+        if (typeof window.__pendingLayerNames === 'undefined') {
+            window.__pendingLayerNames = new Set();
+        }
+
+        function addLayerToMap(layerData) {
+            console.log('Adding layer:', layerData);
+            if (!layerData) return;
+
+            const layerId   = layerData.id || layerData.name || 'layer_' + Date.now();
+            const layerName = layerData.name || 'Unnamed Layer';
+            if (!layerData.id) layerData.id = layerId;
+
+            // Ignore redundant ADD_LAYER for a source whose load is already
+            // underway — otherwise async loaders (GPKG/SHP/ZIP/TIF) can
+            // produce duplicates because loadedLayers[] isn't populated yet.
+            if (window.__pendingLayerNames.has(layerName)) {
+                console.log('Skipping duplicate ADD_LAYER — already pending:', layerName);
+                return;
+            }
+
+            // Defensive de-dup: if a layer with this name (or any sub-layer
+            // derived from it for GPKGs) already exists, remove it first so
+            // repeated ADD_LAYER calls don't stack duplicates on the map.
+            const prefix = layerName + ' - ';
+            const stale = [];
+            for (const id in loadedLayers) {
+                const n = loadedLayers[id].name;
+                if (n === layerName || (typeof n === 'string' && n.startsWith(prefix))) {
+                    stale.push(id);
+                }
+            }
+            stale.forEach(id => removeLayerById(id));
+
+            window.__pendingLayerNames.add(layerName);
+            const clearPending = () => { window.__pendingLayerNames.delete(layerName); };
+            // Safety net: clear the guard after 15s even if the loader never
+            // reaches updateLayerList (e.g. on loader error/alert).
+            // We intentionally do NOT clear pending on a short timer here —
+            // async loaders (GeoJSON/GPKG/SHP/ZIP/TIF via FileReader + Mapbox
+            // whenMapReady) can take well over a second before registering in
+            // loadedLayers. Instead, pending is cleared by updateLayerList()
+            // as soon as the loader has registered the layer.
+            setTimeout(clearPending, 15000);
+
+            try {
+                if (layerData.type === 'image' && layerData.url && layerData.coordinates
+                        && typeof loadImageOverlay === 'function') {
+                    // A raster already rendered and reprojected to EPSG:4326 by
+                    // the server, supplied as four lon/lat corners. Kept apart
+                    // from the 'tif' branch below, which decodes a GeoTIFF in
+                    // the browser and refuses anything not already in WGS84 --
+                    // which is most satellite imagery, since it ships in UTM.
+                    loadImageOverlay(layerData.url, layerData.coordinates, layerId, layerName);
+                }
+                else if (layerData.type === 'geojson' || layerData.geoJSON) {
+                    loadGeoJSON(layerData.geoJSON || layerData.data, layerId, layerName);
+                }
+                else if (layerData.type === 'shapefile-components' && layerData.shapefileData) {
+                    // Must be checked BEFORE the generic shapefile branch:
+                    // components payloads also carry fileType 'shp', and the
+                    // generic branch would grab them with no data attached.
+                    loadShapefileFromComponents(layerData.shapefileData, layerId, layerName);
+                }
+                else if (layerData.type === 'shapefile' || layerData.fileType === 'shp') {
+                    loadShapefile(layerData.data || layerData.url, layerId, layerName);
+                }
+                else if (layerData.type === 'zip' || layerData.fileType === 'zip') {
+                    loadZipFile(layerData.data, layerId, layerName);
+                }
+                else if (layerData.type === 'geopackage' || layerData.fileType === 'gpkg') {
+                    loadGeoPackage(layerData.data || layerData.path, layerId, layerName);
+                }
+                else if (layerData.type === 'marker' && layerData.lat && layerData.lng) {
+                    addMarker([layerData.lng, layerData.lat], layerId, layerName);
+                }
+                else if (layerData.type === 'tif' || layerData.fileType === 'tif' || layerData.fileType === 'tiff') {
+                    loadGeoTIFF(layerData, layerId, layerName);
+                }
+                else if (layerData.url) {
+                    loadFromURL(layerData.url, layerId, layerName);
+                }
+
+                updateLayerList();
+            } catch (error) {
+                clearPending();
+                console.error('Error adding layer:', error);
+                alert('Error loading layer: ' + error.message);
+            }
+        }
+
+        // ================================================================
+        //  SHARED — file-format loaders (all convert to GeoJSON)
+        // ================================================================
+
+        function loadShapefile(data, layerId, layerName) {
+            if (!data) { console.error('No data provided for shapefile'); return; }
+
+            const isValid = typeof data === 'string' ||
+                            data instanceof ArrayBuffer ||
+                            (data && typeof data === 'object' && data.buffer instanceof ArrayBuffer);
+            if (!isValid) {
+                console.error('Invalid shapefile data format:', typeof data);
+                alert('Invalid shapefile data. The file may be corrupted. Please try uploading again.');
+                return;
+            }
+
+            shp(data).then(function (geojson) {
+                loadGeoJSON(geojson, layerId, layerName);
+            }).catch(function (error) {
+                console.error('Error loading shapefile:', error);
+                alert('Error loading shapefile: ' + error.message);
+            });
+        }
+
+        function loadShapefileFromComponents(shapefileData, layerId, layerName) {
+            if (!shapefileData || typeof shapefileData !== 'object') {
+                console.error('Invalid shapefile components data');
+                alert('Invalid shapefile data. Please try uploading again.');
+                return;
+            }
+
+            console.log('Loading shapefile from components:', Object.keys(shapefileData));
+
+            try {
+                shp({
+                    shp: shapefileData.shp,
+                    shx: shapefileData.shx,
+                    dbf: shapefileData.dbf,
+                    prj: shapefileData.prj
+                }).then(function (geojson) {
+                    console.log('Shapefile components converted to GeoJSON:', geojson);
+                    loadGeoJSON(geojson, layerId, layerName);
+                }).catch(function (error) {
+                    console.error('Error loading shapefile components:', error);
+                    alert('Error loading shapefile: ' + error.message);
+                });
+            } catch (error) {
+                console.error('Error processing shapefile components:', error);
+                alert('Error processing shapefile: ' + error.message);
+            }
+        }
+
+        function loadZipFile(data, layerId, layerName) {
+            if (!data) { console.error('No data provided for ZIP file'); return; }
+
+            if (typeof data === 'string' && data.startsWith('data:')) {
+                data = data.split(',')[1];
+            }
+
+            const isValid = typeof data === 'string' ||
+                            data instanceof ArrayBuffer ||
+                            (data && typeof data === 'object' && data.buffer instanceof ArrayBuffer);
+            if (!isValid) {
+                console.error('Invalid ZIP file data format:', typeof data);
+                alert('Invalid ZIP file data. The file may be corrupted. Please try uploading again.');
+                return;
+            }
+
+            shp(data).then(function (geojson) {
+                loadGeoJSON(geojson, layerId, layerName);
+            }).catch(function (error) {
+                console.error('Error loading ZIP file:', error);
+                alert('Error loading ZIP file: ' + error.message);
+            });
+        }
+
+        async function loadGeoPackage(data, layerId, layerName) {
+            console.log('Loading GeoPackage:', layerName);
+
+            if (!data) {
+                console.error('No data provided for GeoPackage');
+                alert('No GeoPackage data received.');
+                return;
+            }
+
+            if (!window.GeoPackage || !window.GeoPackage.GeoPackageAPI) {
+                console.error('GeoPackage library not loaded');
+                alert('GeoPackage library is not available. Please reload the page.');
+                return;
+            }
+
+            const { GeoPackageAPI } = window.GeoPackage;
+
+            try {
+                const uint8Array = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+
+                const geoPackage = await GeoPackageAPI.open(uint8Array);
+                const featureTables = geoPackage.getFeatureTables();
+
+                if (!featureTables || featureTables.length === 0) {
+                    console.warn('No feature tables found in GeoPackage:', layerName);
+                    alert('No feature layers found in this GeoPackage file.');
+                    geoPackage.close();
+                    return;
+                }
+
+                console.log('GeoPackage feature tables:', featureTables);
+
+                // If one of the feature tables matches the file/layer name
+                // (case-insensitive), treat it as the canonical layer and
+                // skip the others — avoids duplicate map entries when a GPKG
+                // ships the same features in multiple tables.
+                const normalizedLayerName = (layerName || '').toLowerCase();
+                let tablesToLoad = featureTables;
+                const canonicalTable = featureTables.find(
+                    t => t && t.toLowerCase() === normalizedLayerName
+                );
+                if (canonicalTable) {
+                    tablesToLoad = [canonicalTable];
+                    if (featureTables.length > 1) {
+                        console.log(
+                            `GeoPackage has ${featureTables.length} feature tables; ` +
+                            `loading only "${canonicalTable}" (matches layer name). ` +
+                            `Skipped: ${featureTables.filter(t => t !== canonicalTable).join(', ')}`
+                        );
+                    }
+                }
+
+                for (let i = 0; i < tablesToLoad.length; i++) {
+                    const tableName = tablesToLoad[i];
+                    const features = geoPackage.queryForGeoJSONFeaturesInTable(tableName);
+
+                    if (features.length === 0) {
+                        console.warn('No features in table:', tableName);
+                        continue;
+                    }
+
+                    const featureCollection = { type: 'FeatureCollection', features: features };
+
+                    const tableLayerId   = tablesToLoad.length > 1 ? layerId + '_' + tableName : layerId;
+                    const tableLayerName = tablesToLoad.length > 1 ? layerName + ' - ' + tableName : layerName;
+
+                    loadGeoJSON(featureCollection, tableLayerId, tableLayerName);
+                    console.log('GeoPackage table loaded:', tableName, '- Features:', features.length);
+                }
+
+                geoPackage.close();
+            } catch (error) {
+                console.error('Error loading GeoPackage:', error);
+                alert('Error loading GeoPackage: ' + error.message);
+            }
+        }
+
+        async function loadGeoTIFF(layerData, layerId, layerName) {
+            const data = layerData.data || layerData;
+            if (!data) { console.error('No data provided for GeoTIFF'); return; }
+
+            if (typeof GeoTIFF === 'undefined') {
+                console.error('GeoTIFF library not loaded');
+                alert('GeoTIFF library is not available. Please reload the page.');
+                return;
+            }
+
+            // Mapbox: wait until the style is fully loaded before addSource/addLayer
+            if (MAP_ENGINE === 'mapbox' && map && typeof map.isStyleLoaded === 'function' && !map.isStyleLoaded()) {
+                await new Promise(resolve => map.once('style.load', resolve));
+            }
+
+            try {
+                const tiff = await GeoTIFF.fromArrayBuffer(data);
+                const image = await tiff.getImage();
+                // Prefer server-computed WGS84 bounds (handles any source CRS via rasterio).
+                // Fall back to image.getBoundingBox() only for files already in WGS84.
+                const wb = layerData.wgs84Bounds;
+                const bbox = wb
+                    ? [wb.west, wb.south, wb.east, wb.north]
+                    : image.getBoundingBox();
+
+                // Sanity check: bbox must be in lat/lon (WGS84) range for Mapbox
+                const [bw, bs, be, bn] = bbox;
+                const inWgs84 = bw >= -180 && be <= 180 && bs >= -90 && bn <= 90;
+                if (!inWgs84) {
+                    const msg = `GeoTIFF bounds are not in WGS84 (lat/lon). Got [${bw.toFixed(1)}, ${bs.toFixed(1)}, ${be.toFixed(1)}, ${bn.toFixed(1)}]. The backend must reproject this raster — check the /api/tif_bounds endpoint.`;
+                    console.error(msg);
+                    alert(msg);
+                    return;
+                }
+                // Decode at display resolution, not full size: the overlay is
+                // one image on screen, and every pixel below is looped over on
+                // the page's thread, so a large raster froze the page.
+                const MAX_DIM = 2048;
+                const scale = Math.min(1, MAX_DIM / Math.max(image.getWidth(), image.getHeight()));
+                const width = Math.max(1, Math.round(image.getWidth() * scale));
+                const height = Math.max(1, Math.round(image.getHeight() * scale));
+                const bands = scale < 1
+                    ? await image.readRasters({ width, height, resampleMethod: 'nearest' })
+                    : await image.readRasters(); // array of TypedArrays, one per band
+                const noData = image.getGDALNoData();
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                const imgData = ctx.createImageData(width, height);
+                const n = width * height;
+
+                if (bands.length >= 3) {
+                    // RGB (or RGBA) raster — use bands 0/1/2 directly
+                    const [r, g, b] = bands;
+                    const a = bands[3] || null;
+                    for (let i = 0; i < n; i++) {
+                        imgData.data[i * 4]     = r[i];
+                        imgData.data[i * 4 + 1] = g[i];
+                        imgData.data[i * 4 + 2] = b[i];
+                        imgData.data[i * 4 + 3] = (a ? a[i] : (noData !== null && r[i] === noData ? 0 : 200));
+                    }
+                } else {
+                    // Single-band raster — stretch to grayscale
+                    const band = bands[0];
+                    let min = Infinity, max = -Infinity;
+                    for (let i = 0; i < n; i++) {
+                        if (noData !== null && band[i] === noData) continue;
+                        if (band[i] < min) min = band[i];
+                        if (band[i] > max) max = band[i];
+                    }
+                    const range = max - min || 1;
+                    for (let i = 0; i < n; i++) {
+                        const isNoData = noData !== null && band[i] === noData;
+                        const val = isNoData ? 0 : Math.round(((band[i] - min) / range) * 255);
+                        imgData.data[i * 4]     = val;
+                        imgData.data[i * 4 + 1] = val;
+                        imgData.data[i * 4 + 2] = val;
+                        imgData.data[i * 4 + 3] = isNoData ? 0 : 200;
+                    }
+                }
+
+                ctx.putImageData(imgData, 0, 0);
+                const dataURL = canvas.toDataURL('image/png');
+
+                // Mapbox GL JS image source with geographic bounding box corners
+                const sourceId = layerId + '_src';
+                if (map.getLayer(layerId)) map.removeLayer(layerId);
+                if (map.getSource(sourceId)) map.removeSource(sourceId);
+
+                map.addSource(sourceId, {
+                    type: 'image',
+                    url: dataURL,
+                    coordinates: [
+                        [bbox[0], bbox[3]], // top-left  [west, north]
+                        [bbox[2], bbox[3]], // top-right [east, north]
+                        [bbox[2], bbox[1]], // bot-right [east, south]
+                        [bbox[0], bbox[1]], // bot-left  [west, south]
+                    ],
+                });
+
+                map.addLayer({
+                    id: layerId,
+                    type: 'raster',
+                    source: sourceId,
+                    paint: { 'raster-opacity': 0.85 },
+                });
+
+                map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 50, animate: true });
+                const tifCoords = [
+                    [bbox[0], bbox[3]],
+                    [bbox[2], bbox[3]],
+                    [bbox[2], bbox[1]],
+                    [bbox[0], bbox[1]],
+                ];
+                loadedLayers[layerId] = {
+                    name: layerName, type: 'tif', sourceId, layerIds: [layerId],
+                    dataURL, coordinates: tifCoords, geomType: 'raster',
+                    rasterInfo: buildTiffRasterInfo(layerName, bands, width, height, bbox, noData),
+                };
+                console.log('GeoTIFF loaded:', layerName, 'bbox:', bbox);
+                updateLayerList();
+            } catch (error) {
+                console.error('Error loading GeoTIFF:', error);
+                alert('Error loading GeoTIFF: ' + error.message);
+            }
+        }
+
+        function loadFromURL(url, layerId, layerName) {
+            fetch(url)
+                .then(response => response.json())
+                .then(geojson => { loadGeoJSON(geojson, layerId, layerName); })
+                .catch(error => {
+                    console.error('Error loading from URL:', error);
+                    alert('Error loading from URL: ' + error.message);
+                });
+        }
+
+        // ================================================================
+        //  SHARED — UI helpers
+        // ================================================================
+
+        function clearAllLayers() {
+            if (Object.keys(loadedLayers).length === 0) { alert('No layers to clear'); return; }
+
+            if (confirm('Are you sure you want to remove all layers from the map?')) {
+                clearAllMapLayers();
+                updateLayerList();
+                console.log('All layers cleared');
+            }
+        }
+
+        function updateLayerList() {
+            const body = document.getElementById('legend-body');
+
+            // Any layer name now registered in loadedLayers is no longer
+            // "pending" — clear it so legitimate re-adds aren't blocked, while
+            // still protecting the race window during the async load.
+            if (window.__pendingLayerNames && window.__pendingLayerNames.size) {
+                const registeredNames = new Set(
+                    Object.values(loadedLayers).map(l => l && l.name).filter(Boolean)
+                );
+                for (const pendingName of Array.from(window.__pendingLayerNames)) {
+                    for (const regName of registeredNames) {
+                        if (regName === pendingName || (typeof regName === 'string' && regName.startsWith(pendingName + ' - '))) {
+                            window.__pendingLayerNames.delete(pendingName);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (Object.keys(loadedLayers).length === 0) {
+                body.innerHTML = '<p style="color:#999; font-size:11px; padding:6px 10px; margin:0;">No layers loaded</p>';
+                return;
+            }
+
+            body.innerHTML = '';
+            Object.keys(loadedLayers).forEach(layerId => {
+                const item = document.createElement('div');
+                item.className = 'layer-item';
+
+                // Determine swatch type from stored geometry type
+                const swatch = document.createElement('span');
+                const geomType = loadedLayers[layerId].geomType || (loadedLayers[layerId].marker ? 'point' : 'polygon');
+                if (geomType === 'point') {
+                    swatch.className = 'legend-swatch legend-swatch--point';
+                } else if (geomType === 'line') {
+                    swatch.className = 'legend-swatch legend-swatch--line';
+                } else {
+                    swatch.className = 'legend-swatch legend-swatch--fill';
+                }
+                const paintSwatch = (color) => {
+                    if (!color) return;
+                    if (geomType === 'polygon' || geomType === 'fill') {
+                        swatch.style.background = colorWithAlpha(color, 0.35);
+                        swatch.style.borderColor = color;
+                    } else {
+                        swatch.style.background = color;
+                    }
+                };
+                paintSwatch(loadedLayers[layerId].color);
+                item.appendChild(swatch);
+
+                const label = document.createElement('span');
+                label.className = 'legend-label';
+                label.textContent = loadedLayers[layerId].name || layerId;
+                item.appendChild(label);
+
+                // Width slider — for vector layers only (skip rasters/markers)
+                const entry = loadedLayers[layerId];
+                const isRaster = entry.type === 'tif' || entry.geomType === 'raster';
+                const isVector = !entry.marker && !isRaster && (
+                    (entry.layer && typeof entry.layer.setStyle === 'function') ||
+                    (Array.isArray(entry.layerIds) && entry.layerIds.length > 0)
+                );
+                if (isVector) {
+                    const slider = document.createElement('input');
+                    slider.type = 'range';
+                    slider.min = '0.0';
+                    slider.max = '4';
+                    slider.step = '0.05';
+                    slider.value = entry.width != null ? entry.width : 0.1;
+                    slider.className = 'layer-width-slider';
+                    slider.title = 'Feature width: ' + slider.value;
+                    slider.addEventListener('input', function (e) {
+                        const w = parseFloat(e.target.value);
+                        setLayerStrokeWidth(layerId, w);
+                        slider.title = 'Feature width: ' + w;
+                    });
+                    slider.addEventListener('click', function (e) { e.stopPropagation(); });
+                    item.appendChild(slider);
+
+                    // The legend swatch itself is the colour control: an
+                    // invisible colour input sits on top of it, so clicking
+                    // the symbol opens the picker.
+                    if (typeof setLayerColor === 'function') {
+                        const picker = document.createElement('input');
+                        picker.type = 'color';
+                        picker.value = entry.color || DEFAULT_LAYER_COLOR;
+                        picker.className = 'layer-color-picker';
+                        picker.title = 'Click to change the symbol colour';
+                        picker.setAttribute('aria-label', 'Symbol colour for ' + (entry.name || layerId));
+                        picker.addEventListener('input', function (e) {
+                            setLayerColor(layerId, e.target.value);
+                            paintSwatch(e.target.value);
+                        });
+                        picker.addEventListener('click', function (e) { e.stopPropagation(); });
+                        swatch.classList.add('legend-swatch--editable');
+                        swatch.title = 'Click to change the symbol colour';
+                        swatch.appendChild(picker);
+                    }
+                }
+
+                // Attribute button — shows this layer's table (vector) or its
+                // raster description in the panel below the map.
+                const tableBtn = document.createElement('button');
+                tableBtn.className = 'layer-table-btn';
+                tableBtn.innerHTML = '&#9776;';
+                tableBtn.title = isRaster ? 'View raster attributes' : 'View attribute table';
+                tableBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    requestAttributeTable(layerId);
+                });
+                item.appendChild(tableBtn);
+
+                // Close (x) button to remove layer
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'layer-remove-btn';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.title = 'Remove layer';
+                removeBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const layerName = loadedLayers[layerId].name || layerId;
+                    removeLayerById(layerId);
+                    updateLayerList();
+                    // Notify parent window to uncheck the corresponding checkbox
+                    window.parent.postMessage({
+                        type: 'LAYER_REMOVED_FROM_MAP',
+                        layerName: layerName
+                    }, '*');
+                });
+                item.appendChild(removeBtn);
+
+                body.appendChild(item);
+            });
+        }
+
+        // Ask the parent window to show this layer's attributes below the
+        // map. The rendered GeoJSON travels with the request so layers the
+        // parent never registered (GeoPackage sub-tables, results dropped
+        // straight onto the map) still get a table; the parent prefers the
+        // original file when it has one, since that can carry columns the
+        // map never loaded.
+        function requestAttributeTable(layerId) {
+            const entry = loadedLayers[layerId];
+            if (!entry) return;
+            const isRaster = entry.type === 'tif' || entry.type === 'image' || entry.geomType === 'raster';
+            window.parent.postMessage({
+                type: 'SHOW_ATTRIBUTE_TABLE',
+                layerName: entry.name || layerId,
+                kind: isRaster ? 'raster' : 'vector',
+                geoJSON: isRaster ? null : (entry.geoJSONData || null),
+                rasterInfo: isRaster ? (entry.rasterInfo || null) : null,
+            }, '*');
+        }
+
+        // Summarise a GeoTIFF from the pixels the viewer just decoded. Used
+        // only when the parent cannot reach the source file — the server
+        // reads the real CRS, nodata and band descriptions, none of which
+        // survive the browser's decode-to-canvas path.
+        function buildTiffRasterInfo(layerName, bands, width, height, bbox, noData) {
+            const total = width * height;
+            // Sample rather than sweep every pixel: a large raster would
+            // otherwise block the UI thread for seconds.
+            const stride = Math.max(1, Math.floor(total / 250000));
+            const bandStats = [];
+            for (let b = 0; b < bands.length; b++) {
+                const arr = bands[b];
+                let min = Infinity, max = -Infinity, sum = 0, count = 0;
+                for (let i = 0; i < total; i += stride) {
+                    const v = arr[i];
+                    if (v == null || Number.isNaN(v)) continue;
+                    if (noData !== null && noData !== undefined && v === noData) continue;
+                    if (v < min) min = v;
+                    if (v > max) max = v;
+                    sum += v;
+                    count++;
+                }
+                bandStats.push({
+                    band: b + 1,
+                    dtype: arr.constructor ? arr.constructor.name : null,
+                    nodata: (noData === null || noData === undefined) ? null : noData,
+                    valid_pixels: count ? Math.round(count * stride) : 0,
+                    min: count ? min : null,
+                    max: count ? max : null,
+                    mean: count ? sum / count : null,
+                    std: null,
+                });
+            }
+            return {
+                properties: {
+                    file_name: layerName,
+                    crs: 'EPSG:4326 (display bounds)',
+                    width: width,
+                    height: height,
+                    band_count: bands.length,
+                    total_pixels: total,
+                    nodata: (noData === null || noData === undefined) ? null : noData,
+                    pixel_size_x: (bbox[2] - bbox[0]) / width,
+                    pixel_size_y: (bbox[3] - bbox[1]) / height,
+                    wgs84_bounds: { west: bbox[0], south: bbox[1], east: bbox[2], north: bbox[3] },
+                },
+                bands: bandStats,
+                categories: null,
+                sampled: stride > 1,
+                note: 'Read in the browser from the displayed raster.',
+            };
+        }
+
+        // A server-rendered overlay arrives as a picture with four corners —
+        // its extent is all the viewer can honestly report about it.
+        function buildOverlayRasterInfo(layerName, coordinates) {
+            const lons = coordinates.map(c => c[0]);
+            const lats = coordinates.map(c => c[1]);
+            return {
+                properties: {
+                    file_name: layerName,
+                    wgs84_bounds: {
+                        west: Math.min.apply(null, lons), south: Math.min.apply(null, lats),
+                        east: Math.max.apply(null, lons), north: Math.max.apply(null, lats),
+                    },
+                },
+                bands: [],
+                categories: null,
+                note: 'Server-rendered overlay — extent only.',
+            };
+        }
+
+        function toggleLegend() {
+            const body = document.getElementById('legend-body');
+            const icon = document.getElementById('legend-toggle-icon');
+            body.classList.toggle('collapsed');
+            icon.classList.toggle('collapsed');
+        }
+
+        // Toggle fullscreen
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // ================================================================
+        //  MESSAGE LISTENER — receives commands from parent window
+        // ================================================================
+
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'ADD_LAYER') {
+                addLayerToMap(event.data.layer);
+            }
+            else if (event.data.type === 'REMOVE_LAYER') {
+                const layerName = event.data.layerName;
+                // Match the exact name AND any sub-layer derived from it (e.g.
+                // GeoPackage tables are loaded as "layerName - tableName").
+                // Remove ALL matches so multi-table sources clean up fully.
+                const prefix = layerName + ' - ';
+                const idsToRemove = [];
+                for (const layerId in loadedLayers) {
+                    const name = loadedLayers[layerId].name;
+                    if (name === layerName || (typeof name === 'string' && name.startsWith(prefix))) {
+                        idsToRemove.push(layerId);
+                    }
+                }
+
+                if (idsToRemove.length) {
+                    idsToRemove.forEach(id => removeLayerById(id));
+                    updateLayerList();
+                    console.log('Layer(s) removed from map:', layerName, idsToRemove);
+                } else {
+                    console.warn('Layer not found in map:', layerName);
+                }
+            }
+            else if (event.data.type === 'CLEAR_ALL_LAYERS') {
+                clearAllMapLayers();
+                updateLayerList();
+                console.log('All layers cleared by parent window');
+            }
+        });
+
+        // ================================================================
+        //  BASEMAP PICKER UI
+        // ================================================================
+        // Esri raster basemaps served as inline Mapbox style objects
+        const ESRI_IMAGERY_TILES = [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        ];
+        const ESRI_LABELS_TILES = [
+            'https://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'
+        ];
+
+        const ESRI_SATELLITE_STYLE = {
+            version: 8,
+            sources: {
+                'esri-imagery': {
+                    type: 'raster', tiles: ESRI_IMAGERY_TILES, tileSize: 256, maxzoom: 19,
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics'
+                }
+            },
+            layers: [{ id: 'esri-imagery', type: 'raster', source: 'esri-imagery' }]
+        };
+
+        const ESRI_HYBRID_STYLE = {
+            version: 8,
+            sources: {
+                'esri-imagery': {
+                    type: 'raster', tiles: ESRI_IMAGERY_TILES, tileSize: 256, maxzoom: 19,
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics'
+                },
+                'esri-labels': {
+                    type: 'raster', tiles: ESRI_LABELS_TILES, tileSize: 256, maxzoom: 19,
+                    attribution: 'Labels &copy; Esri'
+                }
+            },
+            layers: [
+                { id: 'esri-imagery', type: 'raster', source: 'esri-imagery' },
+                { id: 'esri-labels',  type: 'raster', source: 'esri-labels' }
+            ]
+        };
+
+        const BASEMAPS = [
+            { id: 'streets',   label: 'Streets',   url: 'mapbox://styles/mapbox/streets-v12' },
+            { id: 'satellite', label: 'Satellite', url: ESRI_SATELLITE_STYLE },
+            { id: 'hybrid',    label: 'Hybrid',    url: ESRI_HYBRID_STYLE },
+            { id: 'outdoors',  label: 'Outdoors',  url: 'mapbox://styles/mapbox/outdoors-v12' },
+            { id: 'light',     label: 'Light',     url: 'mapbox://styles/mapbox/light-v11' },
+            { id: 'dark',      label: 'Dark',      url: 'mapbox://styles/mapbox/dark-v11' },
+        ];
+
+        (function initBasemapPicker() {
+            const picker = document.getElementById('basemap-picker');
+            const btn = document.getElementById('basemap-picker-btn');
+            const menu = document.getElementById('basemap-picker-menu');
+            if (!picker || !btn || !menu) return;
+
+            // Hide picker entirely when not using Mapbox
+            if (MAP_ENGINE !== 'mapbox') { picker.style.display = 'none'; return; }
+
+            let activeId = 'streets'; // matches MAPBOX_STYLE default
+            function render() {
+                menu.innerHTML = '';
+                BASEMAPS.forEach(bm => {
+                    const opt = document.createElement('div');
+                    opt.className = 'basemap-option' + (bm.id === activeId ? ' active' : '');
+                    opt.textContent = bm.label;
+                    opt.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (bm.id !== activeId && typeof setBasemap === 'function') {
+                            activeId = bm.id;
+                            setBasemap(bm.url);
+                            render();
+                        }
+                        picker.classList.remove('open');
+                    });
+                    menu.appendChild(opt);
+                });
+            }
+            render();
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                picker.classList.toggle('open');
+            });
+            document.addEventListener('click', () => picker.classList.remove('open'));
+        })();
+
+        // ================================================================
+        //  INIT
+        // ================================================================
+        console.log('AGM Map Viewer ready — engine:', MAP_ENGINE);
+    </script>
+</body>
+</html>

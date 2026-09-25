@@ -1,0 +1,32 @@
+# ---- Secrets / environment ----
+.env
+.env.*
+!.env.example
+*.keys
+
+# ---- Handbook data written at runtime (per-user; may contain credentials) ----
+agents/data_agent/DataRetriever_Handbooks/Handbooks_user/*
+agents/data_agent/DataRetriever_Handbooks/Handbooks_pending/*
+agents/data_agent/DataRetriever_Handbooks/Keys/*
+!agents/data_agent/DataRetriever_Handbooks/*/.gitkeep
+
+# ---- Studio sessions and retrieved data ----
+Data_retrieval_skill_project/
+outputs/
+Outputs/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+
+# ---- Logs / editor / OS ----
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*

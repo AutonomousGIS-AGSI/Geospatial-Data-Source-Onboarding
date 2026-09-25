@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handbook Studio</title>
+    <!-- Deep-link routes like /handbook-studio/<session-id> serve this same
+         file from a nested path; pin relative asset/API URLs to the app root
+         so they don't resolve against the current URL's path segments. -->
+    <base href="/">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Syntax highlighting for generated code -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-title">
+                <a href="https://giscience.psu.edu" target="_blank" rel="noopener noreferrer" class="coscientist-logo-link">
+                    <img src="icon/GIS-Coscientist_logo.png" alt="Logo" class="coscientist-logo">
+                </a>
+                <h1>Geospatial Data Source Onboarding</h1>
+            </div>
+            <div class="header-buttons">
+                <button class="header-menu-item config-toggle-btn" onclick="toggleConfigDropdown()">Settings</button>
+                <a href="https://giscience.psu.edu" target="_blank" rel="noopener noreferrer" class="gibd-logo-link">
+                    <img src="icon/gibd_logo.png" alt="GIBD Logo" class="gibd-logo">
+                </a>
+            </div>
+        </header>
+
+        <div class="config-dropdown" id="config-dropdown">
+            <div class="config-dropdown-content">
+                <h2>Configuration Settings</h2>
+
+                <div class="config-section">
+                    <h3>API Key</h3>
+                    <p class="config-hint" style="margin:0 0 8px; font-style:italic;">Get one from <a href="https://www.gibd.online" target="_blank" rel="noopener noreferrer">GIBD services</a> or <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAI</a>.</p>
+                    <div id="GIBD-API-key-input" style="display:flex; gap:8px; align-items:center;">
+                        <input type="password" id="GIBD-API-key" placeholder="Enter your GIBD or OpenAI API key" style="flex:1;" autocomplete="off">
+                        <button type="button" onclick="toggleKeyVisibility('GIBD-API-key')" title="Show/hide key" style="background:none;border:1px solid #ccc;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:14px;">👁</button>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:8px; align-items:center;">
+                        <button type="button" id="GIBD-API-key-save" onclick="saveApiKey()">Save Key</button>
+                        <button type="button" id="GIBD-API-key-clear" onclick="clearApiKey()">Clear Key</button>
+                        <span id="api-key-status" style="font-size:12px;"></span>
+                    </div>
+                    <!-- user_id = sha256(key)[:16]; the id studio sessions and
+                         handbooks are filed under. Filled by refreshUserIdBadge(). -->
+                    <p id="api-key-user-id" class="config-hint" style="display:none; margin:6px 0 0; font-size:12px;" title="Your sessions are stored under this id, derived from your key. The key itself is never stored.">
+                        Your ID: <code id="api-key-user-id-value" style="user-select:all;"></code>
+                        <button type="button" onclick="copyUserId()" title="Copy ID" style="background:none;border:1px solid #ccc;border-radius:4px;padding:1px 6px;cursor:pointer;font-size:11px;margin-left:4px;">Copy</button>
+                    </p>
+                </div>
+
+                <div class="config-section">
+                    <h3>Anthropic API Key</h3>
+                    <p class="config-hint" style="margin:0 0 8px; font-style:italic;">Only needed to select "Claude Agent SDK" as the provider. Get one from <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">Anthropic's console</a>.</p>
+                    <div id="anthropic-API-key-input" style="display:flex; gap:8px; align-items:center;">
+                        <input type="password" id="anthropic-API-key" placeholder="Enter your Anthropic API key" style="flex:1;" autocomplete="off">
+                        <button type="button" onclick="toggleKeyVisibility('anthropic-API-key')" title="Show/hide key" style="background:none;border:1px solid #ccc;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:14px;">👁</button>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:8px; align-items:center;">
+                        <button type="button" id="anthropic-API-key-save" onclick="saveAnthropicApiKey()">Save Key</button>
+                        <button type="button" id="anthropic-API-key-clear" onclick="clearAnthropicApiKey()">Clear Key</button>
+                        <span id="anthropic-api-key-status" style="font-size:12px;"></span>
+                    </div>
+                </div>
+
+                <button class="btn-close-dropdown" onclick="toggleConfigDropdown()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <section class="exp2-workspace" id="handbook-studio-workspace" hidden
+             aria-labelledby="handbook-studio-title">
+        <header class="exp2-header">
+            <div class="exp2-header-title">
+                <div>
+                    <h2 id="handbook-studio-title">Handbook Studio</h2>
+                    <p id="handbook-studio-subtitle">Generate one handbook, review it, then test it</p>
+                </div>
+            </div>
+            <div class="exp2-header-actions">
+                <span class="exp2-save-state" id="handbook-studio-save-state">Not saved</span>
+                <!-- Public read-only link. Hidden in the shared view itself. -->
+                <button type="button" class="exp2-btn secondary hbs-share-btn" id="handbook-studio-share" onclick="HandbookStudioMode.toggleShare()" hidden>Share</button>
+                <button type="button" class="exp2-btn secondary hbs-copy-link" id="handbook-studio-copy-link" onclick="HandbookStudioMode.copyShareLink()" title="Copy the public link" hidden>Copy link</button>
+                <button type="button" class="exp2-btn secondary hbs-owner-only" id="handbook-studio-duplicate" onclick="HandbookStudioMode.duplicateCurrent()" title="Copy this session to reuse its handbook for a different retrieval task, without regenerating it" hidden>Duplicate</button>
+                <button type="button" class="exp2-btn secondary hbs-owner-only" onclick="HandbookStudioMode.openSessionPicker()">Sessions</button>
+                <button type="button" class="exp2-btn primary hbs-owner-only" onclick="HandbookStudioMode.save()">Save</button>
+            </div>
+        </header>
+        <nav class="exp2-tabs" aria-label="Handbook Studio sections">
+            <button class="active" data-hbs-tab="setup" onclick="HandbookStudioMode.switchTab('setup')">
+                <span>1</span><strong>Setup</strong><small>Source &amp; retrieval task</small>
+            </button>
+            <button data-hbs-tab="review" onclick="HandbookStudioMode.switchTab('review')">
+                <span>2</span><strong>Generate &amp; retrieve</strong><small>Generate the handbook, then retrieve data</small>
+            </button>
+            <button data-hbs-tab="results" onclick="HandbookStudioMode.switchTab('results')">
+                <span>3</span><strong>Session report</strong><small>Runs, convergence &amp; exports</small>
+            </button>
+            <!-- Ribbon-style collapse: shrinks the bar to numbers and titles. -->
+            <button type="button" class="hbs-tabbar-toggle" id="hbs-tabbar-toggle"
+                    onclick="HandbookStudioMode.toggleTabBar()" aria-expanded="true"
+                    aria-controls="handbook-studio-main" title="Collapse the section bar"><i aria-hidden="true"></i></button>
+        </nav>
+        <main class="exp2-main" id="handbook-studio-main"></main>
+        <div class="exp2-toast" id="handbook-studio-toast" role="status" aria-live="polite" hidden></div>
+    </section>
+
+    <script src="auth.js"></script>
+    <script src="handbook_studio_mode.js"></script>
+    <script src="view_router.js"></script>
+</body>
+</html>
