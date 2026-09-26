@@ -153,16 +153,21 @@ The 15 tasks from [LLM-Find](https://doi.org/10.1080/17538947.2025.2458688) (Nin
 
 Onboarding built into a full analysis workflow: the agent reuses or generates handbooks, retrieves the data, then runs the analysis.
 
-| Task | Data | Analysis |
-|---|:---:|:---:|
-| LA active fires by census tract | ✅ | ✅ |
-| California earthquake activity by county | ✅ | ✅ |
-| Philadelphia hospital accessibility | ✅ re-onboarded | ❌ wrong CRS |
-| South Carolina obesity & population density | ✅ after rerun | ✅ |
-| LA earthquake kernel density | ✅ | ❌ output not saved |
+**Example: obesity prevalence vs. population density, South Carolina counties.**
+No handbook existed for CDC PLACES, so the agent onboarded it during the run, then built and executed the analysis.
+
+<table>
+<tr>
+<td width="35%" valign="top"><img src="docs/figures/e2e_sc_onboarding.png" alt="Onboarding CDC PLACES during the analysis"><br><sub><b>① Onboarding</b> · find the source → read its docs → draft the handbook → self-verify (6 min, 84k tokens)</sub></td>
+<td width="65%" valign="top"><img src="docs/figures/e2e_sc_analysis_output.png" alt="Generated analysis code and the output map"><br><sub><b>③ Output</b> · the generated analysis program and the resulting county map</sub></td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/figures/e2e_sc_workflow.png" alt="Geoprocessing workflow"><br><sub><b>② Workflow</b> · the geoprocessing workflow built from the retrieved datasets</sub></td>
+</tr>
+</table>
 
 > [!TIP]
-> Data were acquired for all five tasks. Both failures happened in the downstream analysis, not in retrieval.
+> Across all five end-to-end tasks, the required data were acquired. The two failures happened in the downstream analysis, not in retrieval.
 
 ---
 
