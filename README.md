@@ -30,8 +30,7 @@
 
 ## <img src="https://api.iconify.design/lucide:telescope.svg" width="21" height="21" align="center"> Overview
 
-GIS agents can only retrieve data from sources someone has already integrated
-for them. This framework lets an agent **onboard a new source by itself**.
+This framework lets an agent **onboard a new source by itself**.
 From just a source name (and optionally a documentation URL), it builds a
 **handbook** of source-specific operational knowledge, tests it against the
 live service, and keeps it for reuse.
