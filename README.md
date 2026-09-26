@@ -26,6 +26,8 @@
 
 </div>
 
+<a id="overview"></a>
+
 ## <img src="https://api.iconify.design/lucide:telescope.svg" width="21" height="21" align="center"> Overview
 
 GIS agents can only retrieve data from sources someone has already integrated
@@ -45,6 +47,8 @@ live service, and keeps it for reuse.
 
 ---
 
+<a id="framework"></a>
+
 ## <img src="https://api.iconify.design/lucide:workflow.svg" width="21" height="21" align="center"> Framework
 
 ![Framework architecture](docs/figures/framework_architecture.png)
@@ -61,6 +65,8 @@ live service, and keeps it for reuse.
 > A revised handbook replaces the stored one only after it has successfully delivered data, so a bad revision can never displace a working handbook.
 
 ---
+
+<a id="implementation"></a>
 
 ## <img src="https://api.iconify.design/lucide:blocks.svg" width="21" height="21" align="center"> Implementation
 
@@ -89,6 +95,8 @@ live service, and keeps it for reuse.
 </details>
 
 ---
+
+<a id="results"></a>
 
 ## <img src="https://api.iconify.design/lucide:chart-no-axes-column-increasing.svg" width="21" height="21" align="center"> Results
 
@@ -171,6 +179,8 @@ No handbook existed for CDC PLACES, so the agent onboarded it during the run, th
 
 ---
 
+<a id="setup"></a>
+
 ## <img src="https://api.iconify.design/lucide:terminal.svg" width="21" height="21" align="center"> Setup
 
 ```bash
@@ -184,6 +194,8 @@ python WebUI/app.py         # http://localhost:4041
 Enter an OpenAI (or GIBD) API key under **Settings**. An Anthropic key is only needed for the Claude Agent SDK provider.
 
 ---
+
+<a id="citation"></a>
 
 ## <img src="https://api.iconify.design/lucide:quote.svg" width="21" height="21" align="center"> Citation
 
