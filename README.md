@@ -111,7 +111,7 @@ live service, and keeps it for reuse.
 
 ![Completion by access mechanism](docs/figures/completion_by_mechanism.png)
 
-<details>
+<details open>
 <summary><strong>Sources evaluated</strong></summary>
 
 <br>
@@ -130,16 +130,16 @@ live service, and keeps it for reuse.
 
 <table>
 <tr>
-<td width="40%" valign="top"><img src="docs/figures/rest_nasa_firms_sydney.jpg" alt="NASA FIRMS"><br><sub><b>REST</b> · 3,166 NASA FIRMS fire detections, Sydney</sub></td>
-<td width="60%" valign="top"><img src="docs/figures/stac_sentinel2_landsat.jpg" alt="STAC imagery"><br><sub><b>STAC</b> · Sentinel-2 (Earth Search, Planetary Computer) and Landsat scenes</sub></td>
+<td width="40%" valign="top"><img src="docs/figures/rest_nasa_firms_sydney.jpg" alt="NASA FIRMS"><br><sub><b>REST</b> · 3,166 NASA FIRMS fire detections, Sydney · <a href="https://www.gis-coscientist.online/handbook-studio/d2d72cd3-1c52-491a-a587-e0c88cd97522">Full session</a></sub></td>
+<td width="60%" valign="top"><img src="docs/figures/stac_sentinel2_landsat.jpg" alt="STAC imagery"><br><sub><b>STAC</b> · Sentinel-2 and Landsat scenes · Full sessions: <a href="https://www.gis-coscientist.online/handbook-studio/ab9c3e35-47a2-44af-a4d6-4399d5be8664">(a) Earth Search</a> · <a href="https://www.gis-coscientist.online/handbook-studio/f06c8fd2-a6c8-4996-a909-0c476fbe15d5">(b) Planetary Computer</a> · <a href="https://www.gis-coscientist.online/handbook-studio/51468276-ecb6-4f49-90bf-03f86395f4f6">(c) Landsat</a></sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/figures/ogc_3dep_mount_rainier_contours.jpg" alt="USGS 3DEP contours"><br><sub><b>OGC WCS</b> · 772 contours from USGS 3DEP, Mount Rainier</sub></td>
-<td width="50%" valign="top"><img src="docs/figures/ogc_fema_nfhl_cape_coral.jpg" alt="FEMA flood zones"><br><sub><b>OGC WFS</b> · 3,456 FEMA flood-zone polygons, Cape Coral</sub></td>
+<td width="50%" valign="top"><img src="docs/figures/ogc_3dep_mount_rainier_contours.jpg" alt="USGS 3DEP contours"><br><sub><b>OGC WCS</b> · 772 contours from USGS 3DEP, Mount Rainier · <a href="https://www.gis-coscientist.online/handbook-studio/16ff1bc7-e933-4e0b-91fb-cc19c1334670">Full session</a></sub></td>
+<td width="50%" valign="top"><img src="docs/figures/ogc_fema_nfhl_cape_coral.jpg" alt="FEMA flood zones"><br><sub><b>OGC WFS</b> · 3,456 FEMA flood-zone polygons, Cape Coral · <a href="https://www.gis-coscientist.online/handbook-studio/24e8f894-64d9-4d72-bf03-be3227ea5bdf">Full session</a></sub></td>
 </tr>
 <tr>
-<td width="45%" valign="top"><img src="docs/figures/http_hydrosheds_worldpop.jpg" alt="HydroSHEDS and WorldPop"><br><sub><b>HTTPS</b> · HydroSHEDS, Lagos (wrong product: partial) · WorldPop, DR Congo</sub></td>
-<td width="55%" valign="top"><img src="docs/figures/arcgis_padus_quaternary_faults.jpg" alt="PAD-US and Quaternary faults"><br><sub><b>ArcGIS</b> · 326 PAD-US areas, Boulder · 6,153 Quaternary faults</sub></td>
+<td width="45%" valign="top"><img src="docs/figures/http_hydrosheds_worldpop.jpg" alt="HydroSHEDS and WorldPop"><br><sub><b>HTTPS</b> · HydroSHEDS, Lagos (wrong product: partial) · WorldPop, DR Congo · Full sessions: <a href="https://www.gis-coscientist.online/handbook-studio/5ec4ed77-bf0a-4762-9c77-7f59bb849e5d">(a) HydroSHEDS</a> · <a href="https://www.gis-coscientist.online/handbook-studio/d9d21ae4-b9b4-43cb-bd6c-f18791cd5a44">(b) WorldPop</a></sub></td>
+<td width="55%" valign="top"><img src="docs/figures/arcgis_padus_quaternary_faults.jpg" alt="PAD-US and Quaternary faults"><br><sub><b>ArcGIS</b> · 326 PAD-US areas, Boulder · 6,153 Quaternary faults · <a href="https://www.gis-coscientist.online/handbook-studio/734566d5-d749-4cd0-9850-7f9a3b170faa">Full session (a) PAD-US</a></sub></td>
 </tr>
 </table>
 
